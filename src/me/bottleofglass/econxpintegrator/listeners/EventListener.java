@@ -18,7 +18,8 @@ import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class EventListener implements Listener {
@@ -28,26 +29,21 @@ public class EventListener implements Listener {
     Set<Player> set = new HashSet<>();
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onBalanceChange(CMIUserBalanceChangeEvent evt) { //Gets balance change and sets XP according to that
+    public void onBalanceChange(CMIUserBalanceChangeEvent evt) {
         Player p = evt.getUser().getPlayer();
+
         if(set.contains(p)) {//List would contain the player if the Balance change was done by setMoney and hence cancel this event
             set.remove(p);
             if (Main.isLogsEnabled) {
                 log.info(p.getName() + "'s BalanceChangeEvent Ignored");
             }
-
         } else {
-            //sets XP to balance
-            Util.setPlayerExperience(p, evt.getTo());
-            if (Main.isLogsEnabled) {
-                log.info("");
-            }
+            Util.setTotalExp(p, evt.getTo());
         }
     }
     //updates balance whenever players get xp naturally
     @EventHandler
     public void onExpChange(PlayerExpChangeEvent evt) {
-
         Player p = evt.getPlayer();
 
         setMoney(p, (Util.getPlayerExperience(p) + evt.getAmount()));
@@ -62,7 +58,6 @@ public class EventListener implements Listener {
     //updates balance upon item enchant
     @EventHandler
     public void onEnchant(EnchantItemEvent evt) {
-
         Player p = evt.getEnchanter();
 
         int newlevel = (p.getLevel() - (evt.whichButton()+1));
@@ -195,8 +190,6 @@ public class EventListener implements Listener {
 
                 }
             }
-        } else if (command[0].equalsIgnoreCase("experience")) {
-
         }
     }
     @EventHandler
@@ -230,18 +223,20 @@ public class EventListener implements Listener {
                     }
                 }
             }
-        } else if (command[0].equalsIgnoreCase("experience")) {
-            
         }
     }
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent evt) {
         Player p = evt.getPlayer();
-        Util.setPlayerExperience(p, Main.getEconomy().getBalance(p));
+        Util.setTotalExp(p, Main.getEconomy().getBalance(p));
     }
 
     //sets player money through single economy method
     public boolean setMoney(Player p , double value) {
+        if (p == null) {
+            return false;
+        }
+
         double balance = Main.getEconomy().getBalance(p);
         EconomyResponse er;
         if (value > balance) {
